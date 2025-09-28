@@ -2,25 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>USC Libraries</title>
+    <title>Leavey Floors</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>USC Libraries</h1>
-    <div id="libraries-container"></div>
+    <h1>Leavey Library Floors</h1>
+    <div id="floors-container"></div>
+    <p><a href="index.html">← Back to Libraries</a></p>
 
     <script>
-      const librariesContainer = document.getElementById("libraries-container");
-
-      const LIBRARIES = [
-        { name: "Leavey", id: "leavey", link: "leavey.html" },
-        { name: "Doheny", id: "doheny", link: "#" },
-        { name: "Hoose", id: "hoose", link: "#" },
+      const floorsContainer = document.getElementById("floors-container");
+      const FLOORS = [
+        { name: "Basement", id: "basement", link: "leavey-basement.html" },
+        { name: "1st Floor", id: "floor1", link: "#" },
+        { name: "2nd Floor", id: "floor2", link: "#" },
+        { name: "3rd Floor", id: "floor3", link: "#" },
       ];
-
       const MAX_OCCUPANCY = 100;
-      let libraryData = {};
-      LIBRARIES.forEach((lib) => (libraryData[lib.id] = 0));
+      let floorData = {};
+      FLOORS.forEach((f) => (floorData[f.id] = 0));
 
       const gradientStops = [
         { pct: 0, color: "lightgreen" },
@@ -31,12 +31,12 @@
       ];
 
       function lerpColor(a, b, t) {
-        const ah = parseInt(a.replace(/#/g, ""), 16);
-        const ar = ah >> 16,
+        const ah = parseInt(a.replace(/#/g, ""), 16),
+          ar = ah >> 16,
           ag = (ah >> 8) & 0xff,
           ab = ah & 0xff;
-        const bh = parseInt(b.replace(/#/g, ""), 16);
-        const br = bh >> 16,
+        const bh = parseInt(b.replace(/#/g, ""), 16),
+          br = bh >> 16,
           bg = (bh >> 8) & 0xff,
           bb = bh & 0xff;
         const rr = ar + t * (br - ar),
@@ -56,6 +56,7 @@
       }
 
       function getGradientColor(pct) {
+        if (pct === 0) return "lightgreen"; // ensure 0 occupancy starts green
         let lower = gradientStops[0],
           upper = gradientStops[gradientStops.length - 1];
         for (let i = 0; i < gradientStops.length - 1; i++) {
@@ -70,30 +71,29 @@
         return lerpColor(lower.color, upper.color, t);
       }
 
-      function renderLibraries() {
-        librariesContainer.innerHTML = "";
-        LIBRARIES.forEach((lib) => {
-          const pct = (libraryData[lib.id] / MAX_OCCUPANCY) * 100;
+      function renderFloors() {
+        floorsContainer.innerHTML = "";
+        FLOORS.forEach((f) => {
+          const pct = (floorData[f.id] / MAX_OCCUPANCY) * 100;
           const div = document.createElement("a");
-          div.href = lib.link;
+          div.href = f.link;
           div.classList.add("box");
-          div.style.backgroundColor = "lightgreen";
-          div.textContent = `${lib.name}\n${
-            libraryData[lib.id]
-          }/${MAX_OCCUPANCY}`;
+          div.style.backgroundColor =
+            pct === 0 ? "lightgreen" : getGradientColor(pct);
+          div.style.color = "black"; // ensure text is visible
+          div.textContent = `${f.name}\n${floorData[f.id]}/${MAX_OCCUPANCY}`;
           div.addEventListener("click", (e) => {
-            if (lib.link === "#") {
+            if (f.link === "#") {
               e.preventDefault();
-              libraryData[lib.id] =
-                (libraryData[lib.id] + 10) % (MAX_OCCUPANCY + 10);
-              renderLibraries();
+              floorData[f.id] = (floorData[f.id] + 5) % (MAX_OCCUPANCY + 5);
+              renderFloors();
             }
           });
-          librariesContainer.appendChild(div);
+          floorsContainer.appendChild(div);
         });
       }
 
-      renderLibraries();
+      renderFloors();
     </script>
   </body>
 </html>

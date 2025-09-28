@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Leavey Basement</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <p><a href="leavey.html">← Back to Leavey Floors</a></p>
+    <h1>Leavey Basement</h1>
+
+    <div id="progress-wrapper">
+      <div id="progress-container">
+        <div id="progress-bar"></div>
+      </div>
+      <div id="progress-text">0% Occupancy</div>
+    </div>
+
+    <div id="tables-container"></div>
+
+    <script>
+      const tablesContainer = document.getElementById("tables-container");
+      const progressBar = document.getElementById("progress-bar");
+      const progressText = document.getElementById("progress-text");
+
+      progressBar.style.width = `0%`;
+      progressBar.style.backgroundColor = "lightgreen";
+      progressText.textContent = `0% Occupancy`;
+
+      const TOTAL_TABLES = 10;
+      const MAX_OCCUPANCY = 4;
+      const MAX_CAPACITY = TOTAL_TABLES * MAX_OCCUPANCY;
+      let tableData = {};
+
+      // Gradient stops
+      const gradientStops = [
+        { pct: 0, color: "lightgreen" },
+        { pct: 25, color: "#d9f542" },
+        { pct: 50, color: "#f5d742" },
+        { pct: 75, color: "#f59e42" },
+        { pct: 100, color: "#f54242" },
+      ];
+
+      function lerpColor(a, b, t) {
+        const ah = parseInt(a.replace(/#/g, ""), 16),
+          ar = ah >> 16,
+          ag = (ah >> 8) & 0xff,
+          ab = ah & 0xff;
+        const bh = parseInt(b.replace(/#/g, ""), 16),
+          br = bh >> 16,
+          bg = (bh >> 8) & 0xff,
+          bb = bh & 0xff;
+        const rr = ar + t * (br - ar),
+          rg = ag + t * (bg - ag),
+          rb = ab + t * (bb - ab);
+        return (
+          "#" +
+          (
+            (1 << 24) +
+            (Math.round(rr) << 16) +
+            (Math.round(rg) << 8) +
+            Math.round(rb)
+          )
+            .toString(16)
+            .slice(1)
+        );
+      }
+
+      function getGradientColor(pct) {
+        let lower = gradientStops[0],
+          upper = gradientStops[gradientStops.length - 1];
+        for (let i = 0; i < gradientStops.length - 1; i++) {
+          if (pct >= gradientStops[i].pct && pct <= gradientStops[i + 1].pct) {
+            lower = gradientStops[i];
+            upper = gradientStops[i + 1];
+            break;
+          }
+        }
+        const range = upper.pct - lower.pct;
+        const t = (pct - lower.pct) / range;
+        return lerpColor(lower.color, upper.color, t);
+      }
+
+      for (let i = 1; i <= TOTAL_TABLES; i++) {
+        tableData[i] = 0;
+        const div = document.createElement("div");
+        div.classList.add("table-box");
+        div.id = `table-${i}`;
+        div.innerHTML = `Table ${i}<br>Occupancy: 0/${MAX_OCCUPANCY}`;
+        div.style.backgroundColor = "lightgreen"; // start green
+        tablesContainer.appendChild(div);
+      }
+
+      function updateTableColor(div, occupancy) {
+        if (occupancy === 0) {
+          div.style.backgroundColor = "lightgreen"; // always green at 0
+        } else {
+          const pct = (occupancy / MAX_OCCUPANCY) * 100;
+          div.style.backgroundColor = getGradientColor(pct);
+        }
+      }
+
+      function updateProgressBar() {
+        const totalOccupancy = Object.values(tableData).reduce(
+          (a, b) => a + b,
+          0
+        );
+        const pct = (totalOccupancy / MAX_CAPACITY) * 100;
+        progressBar.style.width = `${pct}%`;
+        progressText.textContent = `${Math.round(pct)}% Occupancy`;
+
+        if (totalOccupancy === 0) {
+          progressBar.style.backgroundColor = "lightgreen"; // always green at 0
+        } else {
+          progressBar.style.backgroundColor = getGradientColor(pct);
+        }
+      }
+
+      tablesContainer.addEventListener("click", (e) => {
+        const div = e.target.closest(".table-box");
+        if (!div) return;
+        const tableId = div.id.split("-")[1];
+        let occupancy = tableData[tableId];
+        occupancy = (occupancy + 1) % (MAX_OCCUPANCY + 1);
+        tableData[tableId] = occupancy;
+        div.innerHTML = `Table ${tableId}<br>Occupancy: ${occupancy}/${MAX_OCCUPANCY}`;
+        updateTableColor(div, occupancy);
+        updateProgressBar();
+      });
+    </script>
+  </body>
+</html>

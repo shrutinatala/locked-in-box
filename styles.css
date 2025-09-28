@@ -1,36 +1,58 @@
 body {
   font-family: Arial, sans-serif;
   text-align: center;
-  padding: 20px;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  margin-top: 30px;
+}
+
+#libraries-container,
+#floors-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  max-width: 800px;
+  margin: 30px auto;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  border-radius: 15px;
+  text-decoration: none;
+  color: black;
+  font-size: 18px;
+  font-weight: bold;
+  white-space: pre-line;
+  cursor: pointer;
+  transition: background-color 0.5s ease;
 }
 
 #tables-container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
+  flex-wrap: wrap; /* allows boxes to wrap to next row */
+  gap: 10px; /* space between boxes */
+  max-width: 800px; /* optional: increase container width */
+  margin: 20px auto; /* center horizontally */
 }
 
 .table-box {
-  width: 150px;
-  height: 120px;
-  border-radius: 8px;
+  width: 140px; /* wider boxes */
+  height: 100px; /* keep height proportional, adjust if needed */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.5s ease; /* smooth fade */
-  color: #000;
+  transition: background-color 0.5s; /* smooth fade on color change */
   font-weight: bold;
-}
-
-.table-box.occupied {
-  background-color: #ff9999;
-}
-
-.table-box.empty {
-  background-color: #99ff99;
+  text-align: center; /* keep text centered */
 }
 
 #progress-container {
@@ -45,12 +67,19 @@ body {
 #progress-bar {
   height: 100%;
   width: 0%;
-  background-color: #4caf50; /* green */
+  background-color: #4caf50;
   border-radius: 12px;
   transition: width 0.5s ease, background-color 0.5s ease;
+}
+
+#progress-wrapper {
+  width: 80%;
+  margin: 20px auto;
+  text-align: center; /* ensures text is centered under bar */
 }
 
 #progress-text {
   margin-top: 5px;
   font-weight: bold;
+  font-size: 16px;
 }
