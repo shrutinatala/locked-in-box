@@ -3,7 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <title>Leavey Basement</title>
-    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+      }
+
+      h1 {
+        margin-top: 30px;
+      }
+
+      #tables-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        max-width: 800px;
+        margin: 20px auto;
+      }
+
+      .table-box {
+        width: 140px;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.5s;
+        font-weight: bold;
+        text-align: center;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+
+      #progress-container {
+        width: 80%;
+        height: 25px;
+        background-color: #ddd;
+        border-radius: 12px;
+        margin: 20px auto;
+        overflow: hidden;
+      }
+
+      #progress-bar {
+        height: 100%;
+        width: 0%;
+        background-color: #4caf50;
+        border-radius: 12px;
+        transition: width 0.5s ease, background-color 0.5s ease;
+      }
+
+      #progress-wrapper {
+        width: 80%;
+        margin: 20px auto;
+        text-align: center;
+      }
+
+      #progress-text {
+        margin-top: 5px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      #table-1-names {
+        margin-top: 10px;
+        font-size: 12px;
+        font-weight: normal;
+        line-height: 1.2;
+      }
+
+      #table-1-names p {
+        margin: 2px 0;
+      }
+
+      #debug-info {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        max-width: 300px;
+      }
+    </style>
   </head>
   <body>
     <p><a href="leavey.html">← Back to Leavey Floors</a></p>
@@ -18,21 +105,57 @@
 
     <div id="tables-container"></div>
 
-    <script>
+    <!-- Debug info panel -->
+    <div id="debug-info">
+      <div>
+        Firebase Status: <span id="firebase-status">Connecting...</span>
+      </div>
+      <div>Table 1 Count: <span id="table1-count">0</span></div>
+      <div>Last Update: <span id="last-update">Never</span></div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        query,
+        orderBy,
+        onSnapshot,
+      } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyClE7hLUOvw2zni2Xv3D2jy2tsGfWnafm4",
+        authDomain: "locked-in-box.firebaseapp.com",
+        projectId: "locked-in-box",
+        storageBucket: "locked-in-box.firebasestorage.app",
+        messagingSenderId: "624013844525",
+        appId: "1:624013844525:web:452a00797d5d62caa298a4",
+        measurementId: "G-M2NNFKYJFL",
+      };
+
+      let app, db;
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        document.getElementById("firebase-status").textContent = "Connected";
+        console.log("✅ Firebase initialized successfully");
+      } catch (error) {
+        console.error("❌ Firebase initialization failed:", error);
+        document.getElementById("firebase-status").textContent = "Failed";
+      }
+
       const tablesContainer = document.getElementById("tables-container");
       const progressBar = document.getElementById("progress-bar");
       const progressText = document.getElementById("progress-text");
 
-      progressBar.style.width = `0%`;
-      progressBar.style.backgroundColor = "lightgreen";
-      progressText.textContent = `0% Occupancy`;
-
       const TOTAL_TABLES = 10;
       const MAX_OCCUPANCY = 4;
       const MAX_CAPACITY = TOTAL_TABLES * MAX_OCCUPANCY;
+
       let tableData = {};
 
-      // Gradient stops
       const gradientStops = [
         { pct: 0, color: "lightgreen" },
         { pct: 25, color: "#d9f542" },
@@ -81,19 +204,120 @@
         return lerpColor(lower.color, upper.color, t);
       }
 
+      // Create tables
       for (let i = 1; i <= TOTAL_TABLES; i++) {
         tableData[i] = 0;
         const div = document.createElement("div");
         div.classList.add("table-box");
         div.id = `table-${i}`;
-        div.innerHTML = `Table ${i}<br>Occupancy: 0/${MAX_OCCUPANCY}`;
-        div.style.backgroundColor = "lightgreen"; // start green
+
+        if (i === 1) {
+          // Table 1: Firebase-driven
+          const header = document.createElement("div");
+          header.id = "table-1-header";
+          header.innerHTML = `<strong>Table 1</strong><br>Occupancy: <span id="table-1-occupancy">0</span>/${MAX_OCCUPANCY}`;
+          div.appendChild(header);
+
+          const namesContainer = document.createElement("div");
+          namesContainer.id = "table-1-names";
+          div.appendChild(namesContainer);
+
+          // Listen to Firestore subcollection
+          if (db) {
+            try {
+              const q = query(
+                collection(db, "tables", "1", "names"),
+                orderBy("timestamp")
+              );
+
+              console.log("🔄 Setting up Firestore listener...");
+
+              const unsubscribe = onSnapshot(
+                q,
+                (snapshot) => {
+                  console.log("📡 Firestore snapshot received:", {
+                    size: snapshot.size,
+                    empty: snapshot.empty,
+                    metadata: snapshot.metadata,
+                  });
+
+                  document.getElementById("last-update").textContent =
+                    new Date().toLocaleTimeString();
+                  document.getElementById("table1-count").textContent =
+                    snapshot.size;
+
+                  // Clear existing names
+                  namesContainer.innerHTML = "";
+
+                  if (!snapshot.empty) {
+                    console.log("📋 Processing names:");
+                    snapshot.forEach((doc, index) => {
+                      const data = doc.data();
+                      console.log(
+                        `  ${index + 1}. Document ID: ${doc.id}`,
+                        data
+                      );
+
+                      const p = document.createElement("p");
+                      p.textContent = data.name || "Unknown";
+                      namesContainer.appendChild(p);
+                    });
+                  } else {
+                    console.log("📋 No documents found in subcollection");
+                    const p = document.createElement("p");
+                    p.textContent = "No one here yet";
+                    p.style.fontStyle = "italic";
+                    p.style.opacity = "0.7";
+                    namesContainer.appendChild(p);
+                  }
+
+                  const count = snapshot.size;
+                  tableData[1] = count > MAX_OCCUPANCY ? MAX_OCCUPANCY : count;
+                  document.getElementById("table-1-occupancy").textContent =
+                    tableData[1];
+                  updateTableColor(div, tableData[1]);
+
+                  // Adjust height based on content
+                  const baseHeight = 80;
+                  const nameHeight = Math.max(count, 1) * 20;
+                  div.style.height = `${baseHeight + nameHeight}px`;
+
+                  updateProgressBar();
+
+                  if (tableData[1] >= MAX_OCCUPANCY) {
+                    console.log(
+                      "⚠️ Table 1 is full. No more IDs can be added."
+                    );
+                  }
+                },
+                (error) => {
+                  console.error("❌ Firestore listener error:", error);
+                  document.getElementById("firebase-status").textContent =
+                    "Error: " + error.message;
+
+                  // Show error in names container
+                  namesContainer.innerHTML = `<p style="color: red; font-size: 10px;">Error: ${error.message}</p>`;
+                }
+              );
+            } catch (error) {
+              console.error("❌ Error setting up Firestore listener:", error);
+              namesContainer.innerHTML = `<p style="color: red; font-size: 10px;">Setup Error: ${error.message}</p>`;
+            }
+          } else {
+            namesContainer.innerHTML = `<p style="color: orange; font-size: 10px;">Firebase not connected</p>`;
+          }
+        } else {
+          // Tables 2-10: manual click
+          div.innerHTML = `<strong>Table ${i}</strong><br>Occupancy: 0/${MAX_OCCUPANCY}`;
+          div.style.backgroundColor = "lightgreen";
+        }
+
         tablesContainer.appendChild(div);
       }
 
       function updateTableColor(div, occupancy) {
         if (occupancy === 0) {
-          div.style.backgroundColor = "lightgreen"; // always green at 0
+          div.style.backgroundColor = "lightgreen";
         } else {
           const pct = (occupancy / MAX_OCCUPANCY) * 100;
           div.style.backgroundColor = getGradientColor(pct);
@@ -108,25 +332,34 @@
         const pct = (totalOccupancy / MAX_CAPACITY) * 100;
         progressBar.style.width = `${pct}%`;
         progressText.textContent = `${Math.round(pct)}% Occupancy`;
-
-        if (totalOccupancy === 0) {
-          progressBar.style.backgroundColor = "lightgreen"; // always green at 0
-        } else {
-          progressBar.style.backgroundColor = getGradientColor(pct);
-        }
+        progressBar.style.backgroundColor = getGradientColor(pct);
       }
 
+      // Click handler for tables 2-10 only
       tablesContainer.addEventListener("click", (e) => {
         const div = e.target.closest(".table-box");
         if (!div) return;
         const tableId = div.id.split("-")[1];
+        if (tableId === "1") return; // Disable click for table 1
+
         let occupancy = tableData[tableId];
         occupancy = (occupancy + 1) % (MAX_OCCUPANCY + 1);
         tableData[tableId] = occupancy;
-        div.innerHTML = `Table ${tableId}<br>Occupancy: ${occupancy}/${MAX_OCCUPANCY}`;
+        div.innerHTML = `<strong>Table ${tableId}</strong><br>Occupancy: ${occupancy}/${MAX_OCCUPANCY}`;
         updateTableColor(div, occupancy);
         updateProgressBar();
       });
+
+      // Test function to add sample data (for debugging)
+      window.testAddName = function () {
+        if (db) {
+          console.log("🧪 Adding test name...");
+          // This would normally be done by your Python script
+          // Just for testing the display
+        } else {
+          console.log("❌ Database not connected");
+        }
+      };
     </script>
   </body>
 </html>
