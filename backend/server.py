@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import numpy as np
-# import cv2
+from inference_sdk import InferenceHTTPClient
+import cv2
 # import time
 # from ultralytics import YOLO
 # import os
@@ -13,41 +14,52 @@ app = Flask(__name__)
 #yolo = YOLO("yolov8n.pt")
 
 # esp32 capture resolution
-XRES, YRES = 640, 480
+XRES, YRES = 160, 120
 
 # convert to bgr in order to input the frame into yolo
-def rgb565_to_bgr(img_bytes, w, h):
-    arr = np.frombuffer(img_bytes, dtype=np.uint8)
-    arr16 = arr.view(dtype=np.uint16)
+def rgb565_to_bgr(img_bytes, w, h, save_path):
+    arr16 = np.frombuffer(img_bytes, dtype=np.uint16).reshape((h, w))
+    # arr16 = arr.view(dtype=np.uint16)
+
     r = ((arr16 >> 11) & 0x1F).astype(np.uint8)
     g = ((arr16 >> 5) & 0x3F).astype(np.uint8)
     b = (arr16 & 0x1F).astype(np.uint8)
-    r = ((r.astype(np.uint16) * 255) // 31).astype(np.uint8)
-    g = ((g.astype(np.uint16) * 255) // 63).astype(np.uint8)
-    b = ((b.astype(np.uint16) * 255) // 31).astype(np.uint8)
-    bgr = np.stack([b, g, r], axis=1).reshape((h, w, 3))
+    
+    # convert to bgr
+    r = ((r * 255) // 31).astype(np.uint8)
+    g = ((g * 255) // 63).astype(np.uint8)
+    b = ((b * 255) // 31).astype(np.uint8)
+    bgr = np.dstack([b, g, r]).reshape((h, w, 3))
+
     return bgr
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    if request.content_type != 'image/jpeg':
-        return jsonify({"error": "Not a jpeg"}), 400
-    
     img_bytes = request.data
     save_path = f"uploads/test_image.jpg"
     
-    with open(save_path, "wb") as f:
-        f.write(img_bytes)
+    # Check if it's a JPEG image
+    if request.content_type == 'image/jpeg':
+        # Save JPEG directly
+        with open(save_path, "wb") as f:
+            f.write(img_bytes)
+    else:
+        # Assume it's RGB565 data from ESP32
+        try:
+            img_bgr = rgb565_to_bgr(img_bytes, XRES, YRES, save_path)
+            # Save the converted BGR image as JPEG
+            cv2.imwrite(save_path, img_bgr)
+        except Exception as e:
+            return jsonify({"status": "error", "msg": f"bad frame: {str(e)}"}), 400
+    
+    CLIENT = InferenceHTTPClient(
+        api_url="https://serverless.roboflow.com",
+        api_key="OfejNA03kkSvfV1s7jrG"
+    )
 
-    return jsonify({"msg": "Image recieved and saved as {save_path}"})
+    result = CLIENT.infer(save_path, model_id="id-card-detection-xtiwy/3")
 
-    '''
-    frame = np.frombuffer(img_bytes, dtype=np.uint8)
-    try:
-        frame_bgr = rgb565_to_bgr(img_bytes, XRES, YRES)
-    except Exception:
-        return {"status": "error", "msg": "bad frame"}
-        '''
+    return jsonify({"msg": f"Image received and saved as {save_path}. Roboflow result: {result}"})
     
 '''
     # send to yolo to predict if ID
