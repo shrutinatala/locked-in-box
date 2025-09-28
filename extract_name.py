@@ -8,12 +8,13 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 
-def extract_name_from_id():
+def extract_name_from_id(image_path: str) -> str | None:
+
     # Configure Gemini API
     api_key = os.getenv("GEMINI_API_KEY")
     genai.configure(api_key=api_key)
     # image_path = "C:/Users/grish/OneDrive/Desktop/GitHub/breaktomake/usc-card-2-1.png"
-    image_path = "charlotte_chang.jpg"
+
     # Load image
     try:
         img = PIL.Image.open(image_path)
@@ -48,7 +49,7 @@ def main():
 
     # args = parser.parse_args()
 
-    result = extract_name_from_id()
+    result = extract_name_from_id("charlotte_chang.jpg")
     # result = extract_name_from_id(args.image, args.api_key)
 
     if result:
