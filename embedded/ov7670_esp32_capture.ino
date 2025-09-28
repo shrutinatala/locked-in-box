@@ -1,3 +1,8 @@
+// parts of this code are taken from
+// https://github.com/bitluni/ESP32CameraI2S/
+// by bitluni
+// released under Public Domain
+
 #include "OV7670.h"
 #include <WiFi.h>
 #include <WiFiMulti.h>

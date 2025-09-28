@@ -1,3 +1,7 @@
+// all of this code is taken from
+// https://github.com/bitluni/ESP32CameraI2S/
+// by bitlun
+
 //parts of his code are taken from
 //https://github.com/igrr/esp32-cam-demo
 //by Ivan Grokhotkov
