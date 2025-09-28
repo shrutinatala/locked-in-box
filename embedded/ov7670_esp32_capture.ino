@@ -28,6 +28,12 @@ const int D5 = 13;
 const int D6 = 12;
 const int D7 = 4;
 
+// LED pins
+const int D19_RED = 19;
+const int D18_YELLOW = 18;
+const int D26_BLUE = 26;
+const int D25_GREEN = 25;
+
 const OV7670::Mode CAMERA_MODE = OV7670::QQVGA_RGB565;
 
 // wifi settings
