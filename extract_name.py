@@ -13,7 +13,7 @@ def extract_name_from_id():
     api_key = os.getenv("GEMINI_API_KEY")
     genai.configure(api_key=api_key)
     # image_path = "C:/Users/grish/OneDrive/Desktop/GitHub/breaktomake/usc-card-2-1.png"
-    image_path = "C:/Users/grish/OneDrive/Desktop/GitHub/breaktomake/charlotte_chang.jpg"
+    image_path = "charlotte_chang.jpg"
     # Load image
     try:
         img = PIL.Image.open(image_path)
